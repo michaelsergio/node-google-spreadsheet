@@ -3,7 +3,16 @@ var request = require("browser-request");
 var xml2js = require("xml2js");
 var http = require("http");
 var querystring = require("querystring");
-var _ = require('lodash');
+
+var assign = require('lodash/assign');
+var clone = require('lodash/clone');
+var each = require('lodash/each');
+var extend = require('lodash/extend');
+var indexBy = require('lodash/keyBy');
+var isObject = require('lodash/isObject');
+var map = require('lodash/map');
+var noop = require('lodash/noop');
+var reduce = require('lodash/reduce');
 
 var GOOGLE_FEED_URL = "https://spreadsheets.google.com/feeds/";
 var GOOGLE_AUTH_SCOPE = ["https://spreadsheets.google.com/feeds"];
@@ -133,7 +142,7 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
           } else if( response.statusCode === 401 ) {
             return cb( new Error("Invalid authorization key."));
           } else if ( response.statusCode >= 400 ) {
-            var message = _.isObject(body) ? JSON.stringify(body) : body.replace(/&quot;/g, '"');
+            var message = isObject(body) ? JSON.stringify(body) : body.replace(/&quot;/g, '"');
             return cb( new Error("HTTP error "+response.statusCode+" ("+http.STATUS_CODES[response.statusCode])+") - "+message);
           } else if ( response.statusCode === 200 && response.headers['content-type'].indexOf('text/html') >= 0 ) {
             return cb( new Error("Sheet is private. Use authentication or make public. (see https://github.com/theoephraim/node-google-spreadsheet#a-note-on-authentication for details)"));
@@ -189,7 +198,7 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
       opts = {};
     }
 
-    cb = cb || _.noop;
+    cb = cb || noop;
 
     if (!this.isAuthActive()) return cb(new Error(REQUIRE_AUTH_MESSAGE));
 
@@ -199,7 +208,7 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
       colCount: 20
     };
 
-    var opts = _.extend({}, defaults, opts);
+    var opts = extend({}, defaults, opts);
 
     // if column headers are set, make sure the sheet is big enough for them
     if (opts.headers && opts.headers.length > opts.colCount) {
@@ -266,12 +275,12 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
 
 
       // need to add the properties from the feed to the xml for the entries
-      var feed_props = _.clone(data.$);
+      var feed_props = clone(data.$);
       delete feed_props['gd:etag'];
-      var feed_props_str = _.reduce(feed_props, function(str, val, key){
+      var feed_props_str = reduce(feed_props, function(str, val, key){
         return str+key+'=\''+val+'\' ';
       }, '');
-      entries_xml = _.map(entries_xml, function(xml){
+      entries_xml = map(entries_xml, function(xml){
         return xml.replace('<entry ', '<entry '+feed_props_str);
       });
 
@@ -310,7 +319,7 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
 
     // Supported options are:
     // min-row, max-row, min-col, max-col, return-empty
-    var query = _.assign({}, opts);
+    var query = assign({}, opts);
 
 
     self.makeFeedRequest(["cells", ss_key, worksheet_id], 'GET', query, function (err, data, xml) {
@@ -351,7 +360,7 @@ var SpreadsheetWorksheet = function( spreadsheet, data ){
   self['_links']['bulkcells'] = self['_links']['cells']+'/batch';
 
   function _setInfo(opts, cb) {
-    cb = cb || _.noop;
+    cb = cb || noop;
     var xml = ''
       + '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006">'
       + '<title>'+(opts.title || self.title)+'</title>'
@@ -411,7 +420,7 @@ var SpreadsheetWorksheet = function( spreadsheet, data ){
       if (err) return cb(err);
 
       // update all the cells
-      var cells_by_batch_id = _.indexBy(cells, 'batchId');
+      var cells_by_batch_id = indexBy(cells, 'batchId');
       if (data.entry && data.entry.length) data.entry.forEach(function(cell_data) {
         cells_by_batch_id[cell_data['batch:id']].updateValuesFromResponseData(cell_data);
       });
@@ -436,7 +445,7 @@ var SpreadsheetWorksheet = function( spreadsheet, data ){
       'return-empty': true
     }, function(err, cells) {
       if (err) return cb(err);
-      _.each(cells, function(cell) {
+      each(cells, function(cell) {
         cell.value = values[cell.col-1] ? values[cell.col-1] : '';
       });
       self.bulkUpdateCells(cells, cb);
