@@ -1,5 +1,5 @@
 var async = require("async");
-var request = require("request");
+var axios = require("axios");
 var xml2js = require("xml2js");
 var http = require("http");
 var querystring = require("querystring");
@@ -131,37 +131,37 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
           url += query;
         }
 
-        request( {
+        axios( {
           url: url,
           method: method,
           headers: headers,
-          body: method == 'POST' || method == 'PUT' ? query_or_data : null
-        }, function(err, response, body){
-          if (err) {
-            return cb( err );
-          } else if( response.statusCode === 401 ) {
+          data: method == 'POST' || method == 'PUT' ? query_or_data : null
+        }).then(response => {
+          if (response.statusCode === 401) {
             return cb( new Error("Invalid authorization key."));
-          } else if ( response.statusCode >= 400 ) {
+          } 
+          else if ( response.statusCode >= 400 ) {
             var message = isObject(body) ? JSON.stringify(body) : body.replace(/&quot;/g, '"');
-            return cb( new Error("HTTP error "+response.statusCode+" ("+http.STATUS_CODES[response.statusCode])+") - "+message);
+            return cb(new Error("HTTP error "+response.statusCode+" ("+http.STATUS_CODES[response.statusCode])+") - "+message);
           } 
           // Removed response header checking for private sheets
 
-          if ( body ){
-            xml_parser.parseString(body, function(err, result){
-              if ( err ) return cb( err );
-              cb( null, result, body );
+          const body = response.data;
+          if (body) {
+            xml_parser.parseString(body, function(err, result) {
+              if (err) return cb(err);
+              cb( null, result, body);
             });
           } else {
-            if ( err ) cb( err );
-            else cb( null, true );
+            if (err) cb(err);
+            else cb(null, true);
           }
-        })
+        }).catch(function(err) { 
+          return cb(err);
+        });
       }
     });
   }
-
-
 
   // public API methods
   this.getInfo = function( cb ){
