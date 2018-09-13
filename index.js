@@ -1,5 +1,5 @@
 var async = require("async");
-var request = require("request");
+var request = require("browser-request");
 var xml2js = require("xml2js");
 var http = require("http");
 var querystring = require("querystring");
