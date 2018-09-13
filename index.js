@@ -144,10 +144,8 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
           } else if ( response.statusCode >= 400 ) {
             var message = isObject(body) ? JSON.stringify(body) : body.replace(/&quot;/g, '"');
             return cb( new Error("HTTP error "+response.statusCode+" ("+http.STATUS_CODES[response.statusCode])+") - "+message);
-          } else if ( response.statusCode === 200 && response.headers['content-type'].indexOf('text/html') >= 0 ) {
-            return cb( new Error("Sheet is private. Use authentication or make public. (see https://github.com/theoephraim/node-google-spreadsheet#a-note-on-authentication for details)"));
-          }
-
+          } 
+          // Removed response header checking for private sheets
 
           if ( body ){
             xml_parser.parseString(body, function(err, result){
