@@ -4,7 +4,6 @@ var xml2js = require("xml2js");
 var http = require("http");
 var querystring = require("querystring");
 var _ = require('lodash');
-var GoogleAuth = require("google-auth-library");
 
 var GOOGLE_FEED_URL = "https://spreadsheets.google.com/feeds/";
 var GOOGLE_AUTH_SCOPE = ["https://spreadsheets.google.com/feeds"];
@@ -20,9 +19,6 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
   var projection = 'values';
 
   var auth_mode = 'anonymous';
-
-  var auth_client = new GoogleAuth();
-  var jwt_client;
 
   options = options || {};
 
@@ -61,27 +57,11 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
         return cb(err);
       }
     }
-    jwt_client = new auth_client.JWT(creds.client_email, null, creds.private_key, GOOGLE_AUTH_SCOPE, null);
-    renewJwtAuth(cb);
-  }
-
-  function renewJwtAuth(cb) {
-    auth_mode = 'jwt';
-    jwt_client.authorize(function (err, token) {
-      if (err) return cb(err);
-      self.setAuthToken({
-        type: token.token_type,
-        value: token.access_token,
-        expires: token.expiry_date
-      });
-      cb()
-    });
   }
 
   this.isAuthActive = function() {
     return !!google_auth;
   }
-
 
   function setAuthAndDependencies( auth ) {
     google_auth = auth;
