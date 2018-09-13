@@ -136,7 +136,7 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
           method: method,
           headers: headers,
           data: method == 'POST' || method == 'PUT' ? query_or_data : null
-        }).then(response => {
+        }).then(function(response) {
           if (response.statusCode === 401) {
             return cb( new Error("Invalid authorization key."));
           } 
@@ -144,7 +144,9 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
             var message = isObject(body) ? JSON.stringify(body) : body.replace(/&quot;/g, '"');
             return cb(new Error("HTTP error "+response.statusCode+" ("+http.STATUS_CODES[response.statusCode])+") - "+message);
           } 
-          // Removed response header checking for private sheets
+          else if ( response.status === 200 && response.headers['content-type'].indexOf('text/html') >= 0 ) {
+            return cb( new Error("Sheet is private. Use authentication or make public. (see https://github.com/theoephraim/node-google-spreadsheet#a-note-on-authentication for details)"));
+          }
 
           const body = response.data;
           if (body) {
@@ -152,7 +154,8 @@ var GoogleSpreadsheet = function( ss_key, auth_id, options ){
               if (err) return cb(err);
               cb( null, result, body);
             });
-          } else {
+          } 
+          else {
             if (err) cb(err);
             else cb(null, true);
           }
